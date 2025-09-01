@@ -1,83 +1,151 @@
+import json
+from datetime import datetime
 import sys 
-sys.stdout.reconfigure(encoding='utf-8')
-# Listas de tarefas
-tarefas_pendentes = []
-tarefas_concluidas = []
+sys.stdout.reconfigure(encoding="utf-8")
 
-# Função para exibir o menu
+ARQUIVO_DADOS = "tarefas.json"
+
+# ------------------ utilidades ------------------ #
+def carregar_dados():
+    """Carrega tarefas do arquivo JSON, se existir."""
+    try:
+        with open(ARQUIVO_DADOS, "r", encoding="utf - 8") as f:
+            dados = json.load(f)
+            return dados.get ("pendentes", []),dados.get ("concluidas",[])
+    except FileNotFoundError:
+        return [], []
+
+def salvar_dados():
+    """Salva as listas em JSON para manter o histórico."""                
+    with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
+        json.dump({"pendentes": tarefas_pendentes,
+                   "concluidas": tarefas_concluidas}, f,  indent=2, ensure_ascii=False)
+
+def str_para_data(txt):
+    """ Converte DD-MM-AAAA para datetime.date (ou None se erro)"""
+    try:
+        return datetime.strptime(txt, "%d-%m-%Y").date()
+    except ValueError:
+        return None
+    
+    # ------------------ funções de menu ------------------ #
+
 def exibir_menu():
     print("\n===== MENU =====")
     print("1 - Adicionar nova tarefa")
     print("2 - Ver tarefas pendentes")
     print("3 - Marcar tarefa como concluída")
-    print("4 - Ver tarefas concluídas")
-    print("5 - Sair")
+    print("4 - Editar tarefas pendentes")
+    print("5 - Ver tarefas concluídas")
+    print("6 - Filtrar tarefas por período")
+    print("7 - Sair")
+
 
 # Função para adicionar uma nova tarefa
 def adicionar_tarefa():
-    descricao = input("Digite a descrição da tarefa: ").strip()
-    data = input("Digite a data de vencimento (AAAA-MM-DD): ").strip()
-    prioridade = input("Digite a prioridade (Baixa, Média ou Alta): ").strip().capitalize()
-
-    tarefa = {
-        "descricao": descricao,
-        "data": data,
-        "prioridade": prioridade
-    }
-
+    desc = input("Descrição: ").strip()
+    data_txt = input("Data (DD-MM-AAAA): ").strip()
+    data = str_para_data(data_txt)
+    if not data:
+        print("Data inválida.")
+        return
+    prioridade = input("Prioridade (Baixa, Média ou Alta): ").strip().capitalize()
+    tarefa = {"descricao": desc, "data": data_txt, "prioridade": prioridade}
     tarefas_pendentes.append(tarefa)
-    print("Tarefa adicionada com sucesso.")
+    salvar_dados()
+    print("Tarefa adicionada.")
 
-# Função para listar tarefas (pendentes ou concluídas)
-def listar_tarefas(lista):
-    if lista:
-        tarefas_ordenadas = sorted(lista, key=lambda x: x["descricao"].lower())
-        for i, tarefa in enumerate(tarefas_ordenadas):
-            print(f"[{i}] {tarefa['descricao'].title()} | Data: {tarefa['data']} | Prioridade: {tarefa['prioridade']}")
-    else:
-        print("Nenhuma tarefa para exibir.")
-
-# Função para concluir uma tarefa
+def listar (lista):
+    if not lista:
+        print("Nenhuma tarefa na lista.")
+        return
+    lista_ordenada = sorted(lista, key=lambda x: x["descricao"].lower())
+    for i, t in enumerate(lista_ordenada):
+        print(f"[{i}] {t['descricao'].title()} | {t['data']} | {t['prioridade']}")
 def concluir_tarefa():
-    if tarefas_pendentes:
-        tarefas_ordenadas = sorted(tarefas_pendentes, key=lambda x: x["descricao"].lower())
-        print("\nTarefas pendentes:")
-        for i, tarefa in enumerate(tarefas_ordenadas):
-            print(f"[{i}] {tarefa['descricao'].title()} | Data: {tarefa['data']} | Prioridade: {tarefa['prioridade']}")
-
-        escolha = input("Digite o número da tarefa que deseja marcar como concluída: ")
-
-        if escolha.isdigit():
-            indice = int(escolha)
-            if 0 <= indice < len(tarefas_ordenadas):
-                tarefa_concluida = tarefas_ordenadas[indice]
-                tarefas_pendentes.remove(tarefa_concluida)
-                tarefas_concluidas.append(tarefa_concluida)
-                print(f"Tarefa '{tarefa_concluida['descricao'].title()}' marcada como concluída.")
-            else:
-                print("Índice inválido.")
+    if not tarefas_pendentes:
+        print("Sem tarefas pendentes.")
+        return
+    listar(tarefas_pendentes)
+    idx = input("Número da tarefa a concluir:")
+    if idx.isdigit():
+        idx = int(idx)
+        if 0 <= idx < len(tarefas_pendentes):
+            t = tarefas_pendentes.pop(idx)
+            tarefas_concluidas.append(t)
+            salvar_dados()
+            print("Concluída.")
         else:
-            print("Entrada inválida. Digite um número.")
-    else:
-        print("Nenhuma tarefa para concluir.")
+            print("Índice inválido.")
 
-# Laço principal do programa
+def editar_tarefa():
+    if not tarefas_pendentes:
+        print("Sem tarefas pendentes.")
+        return
+    listar(tarefas_pendentes)
+    idx = input("Número da tarefa a editar: ")
+    if not idx.isdigit():
+        print("Entrada inválida. ")
+        return
+    idx = int(idx)
+    if not (0 <= idx < len(tarefas_pendentes)):
+        print("Índice fora do alcance.")
+        return
+    
+    tarefa = tarefas_pendentes[idx]
+    print("Deixe em branco para não alterar. ")
+    nova_desc = input(f"Nova descrição [{tarefa['descricao']}]: ").strip()
+    nova_data = input(f"Nova data (AAAA-MM-DD) [{tarefa['data']}]: ").strip()
+    nova_prio = input(f"Nova prioridade [{tarefa['prioridade']}]: ").strip().capitalize()
+
+    if nova_desc:
+        tarefa["descricao"] = nova_desc
+    if nova_data:
+        if str_para_data(nova_data):
+            tarefa["data"] = nova_data
+        else:
+            print("Data inválida - mantida original ")
+    if nova_prio:
+        tarefa["prioridade"] = nova_prio
+    salvar_dados()
+    print("Tarefa atualizada. ")
+    
+def filtrar_por_periodo():
+    inicio_txt = input("Data inicial (AAAA-MM-DD): ").strip()
+    fim_txt = input("Data final (AAAA-MM-DD): ").strip()
+    ini = str_para_data(inicio_txt)
+    fim = str_para_data(fim_txt)
+    if not ini or not fim or ini > fim:
+        print("Período inválido. ")
+        return
+    print("\nPendentes no período:")
+    pend = [t for t in tarefas_pendentes if ini <= str_para_data(t["data"]) <= fim]
+    listar(pend)
+    print("\nConcluídas no período: ")
+    conc = [t for t in tarefas_concluidas if ini <= str_para_data(t["data"]) <= fim]
+    listar(conc)
+    
+# ------------------ programa principal ------------------ #
+
+tarefas_pendentes, tarefas_concluidas = carregar_dados()
+
 while True:
     exibir_menu()
-    opcao = input("Escolha uma opção: ").strip()
-
-    if opcao == "1":
+    op = input("Opção: ").strip()
+    if op == "1":
         adicionar_tarefa()
-    elif opcao == "2":
-        print("\nTarefas pendentes:")
-        listar_tarefas(tarefas_pendentes)
-    elif opcao == "3":
+    elif op == "2":
+        listar(tarefas_pendentes)
+    elif op == "3":
         concluir_tarefa()
-    elif opcao == "4":
-        print("\nTarefas concluídas:")
-        listar_tarefas(tarefas_concluidas)
-    elif opcao == "5":
-        print("Encerrando o programa. Até logo!")
+    elif op == "4":
+        editar_tarefa()
+    elif op == "5":
+        listar(tarefas_concluidas)
+    elif op == "6":
+        filtrar_por_periodo()
+    elif op == "7":
+        print("Até logo!")
         break
     else:
-        print("Opção inválida. Tente novamente.")
+        print("Opção inválida.")

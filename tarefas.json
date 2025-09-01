@@ -1,0 +1,41 @@
+{
+  "pendentes": [
+    {
+      "descricao": "treinar mais",
+      "data": "10-07-2025",
+      "prioridade": "Media"
+    }
+  ],
+  "concluidas": [
+    {
+      "descricao": "Aniversário irmão",
+      "data": "25-07-2025",
+      "prioridade": "Alta"
+    },
+    {
+      "descricao": "Lavar o carro dentro e fora",
+      "data": "30-06-2025",
+      "prioridade": "Média"
+    },
+    {
+      "descricao": "Lavar o carro",
+      "data": "02-07-2025",
+      "prioridade": "Alta"
+    },
+    {
+      "descricao": "Limpar a casa",
+      "data": "06-07-2025",
+      "prioridade": "Média"
+    },
+    {
+      "descricao": "Lavar o carro",
+      "data": "07-07-2025",
+      "prioridade": "Alta"
+    },
+    {
+      "descricao": "Marcar endócrino",
+      "data": "07-07-2025",
+      "prioridade": "Média"
+    }
+  ]
+}
